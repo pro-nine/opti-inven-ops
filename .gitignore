@@ -1,0 +1,11 @@
+# Environments & Cache
+myenv/
+__pycache__/
+*.pyc
+
+# Generated Outputs & Figures
+outputs/
+*.png
+
+# Generated Output Data
+data/policy_recommendations.csv
