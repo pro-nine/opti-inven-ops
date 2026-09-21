@@ -1,3 +1,9 @@
 duckdb
 pandas
 pytest
+scipy
+statsmodels
+scikit-learn
+matplotlib
+seaborn
+openpyxl
