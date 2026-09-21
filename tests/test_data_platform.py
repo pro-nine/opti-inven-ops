@@ -2,6 +2,7 @@ import pandas as pd
 import pytest
 from data_platform.ingestion import to_long_format
 from data_platform.quality import validate_demand
+from data_platform.warehouse import build_warehouse, list_tables
 
 
 def sample():
@@ -25,3 +26,12 @@ def test_negative_demand_fails():
     data.loc[0, "demand"] = -1
     with pytest.raises(ValueError):
         validate_demand(data)
+
+
+def test_warehouse_contains_core_tables(tmp_path):
+    raw = sample()
+    long_df = to_long_format(raw)
+    db = tmp_path / "warehouse.duckdb"
+    build_warehouse(raw, long_df, db, {"inventory_policy": pd.DataFrame({"sku": ["A"], "q": [10]})})
+    tables = list_tables(db)
+    assert {"raw_demand", "demand", "demand_summary", "inventory_policy"}.issubset(tables)
