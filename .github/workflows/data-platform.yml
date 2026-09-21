@@ -18,6 +18,5 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install -r Requirements.txt
-      - run: pip install -r requirements-data-platform.txt
       - run: pytest -q
       - run: python -m data_platform.pipeline
