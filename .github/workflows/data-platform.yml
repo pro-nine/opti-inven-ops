@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -20,29 +21,68 @@ env:
 jobs:
   test-and-run:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
           cache-dependency-path: Requirements.txt
-
       - run: python -m pip install --upgrade pip
-      - run: python -m pip install -r Requirements.txt duckdb pytest
-      - run: python -c "import scipy; print(f'SciPy {scipy.__version__}')"
-      - run: pytest -q
-      - run: python -m data_platform.pipeline
-
+      - run: python -m pip install -r Requirements.txt pytest
+      - name: Check installed dependency consistency
+        run: python -m pip check
+      - name: Record resolved versions
+        run: python -m pip freeze > resolved-requirements.txt
+      - run: python -m pytest -q
+      - name: Run integrated pipeline on Python 3.12
+        if: matrix.python-version == '3.12'
+        run: |
+          rm -rf data/powerbi
+          python -m data_platform.pipeline
+      - name: Validate Power BI CSV exports
+        if: matrix.python-version == '3.12'
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import pandas as pd
+          folder = Path('data/powerbi')
+          required = {
+              'raw_demand': {'date'},
+              'demand': {'date', 'sku', 'demand'},
+              'demand_summary': {'sku', 'observations', 'average_demand'},
+              'run_log': {'run_id', 'status'},
+          }
+          for name, columns in required.items():
+              path = folder / f'{name}.csv'
+              assert path.is_file(), f'Missing export: {path}'
+              frame = pd.read_csv(path)
+              assert not frame.empty, f'Empty core export: {path}'
+              assert columns <= set(frame.columns), f'Wrong schema: {path}'
+              if name == 'run_log':
+                  assert frame.iloc[-1]['status'] == 'SUCCESS'
+          for path in folder.glob('*.csv'):
+              pd.read_csv(path)
+          print('Core schemas and all exported CSVs validated')
+          PY
       - name: Upload Power BI exports
         if: matrix.python-version == '3.12'
         uses: actions/upload-artifact@v4
         with:
           name: powerbi-exports
-          path: data/powerbi/
-          if-no-files-found: ignore
+          path: data/powerbi/*.csv
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload resolved dependency versions
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependencies-python-${{ matrix.python-version }}
+          path: resolved-requirements.txt
+          if-no-files-found: warn
+          retention-days: 14
