@@ -18,7 +18,7 @@ def main():
     print("="*70)
 
     # Module 1
-    from src.module1_demand import run_module1
+    from src.demand_compat import run_module1_compatible as run_module1
     m1 = run_module1(fig_dir=FIG_DIR, data_dir=DATA_DIR)
 
     # Module 2
