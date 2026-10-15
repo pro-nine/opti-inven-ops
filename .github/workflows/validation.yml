@@ -1,6 +1,9 @@
 name: validation
 
 on:
+  push:
+    branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -13,7 +16,7 @@ env:
 jobs:
   benchmarks-and-docker:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -23,12 +26,21 @@ jobs:
           cache-dependency-path: Requirements.txt
       - run: python -m pip install -r Requirements.txt pytest
       - run: python -m pip check
-      - run: python -m pytest -q
+      - name: Run complete host test suite
+        run: python -m pytest -q
       - run: python -m src.robustness
       - name: Build current Dockerfile
         run: docker build -t opti-inven-validation .
-      - name: Execute container pipeline
-        run: docker run --rm opti-inven-validation
+      - name: Validate source and tests inside the image
+        run: >-
+          docker run --rm -e PYTHONPATH=/app -e MPLBACKEND=Agg
+          opti-inven-validation sh -ec
+          'python -m pip install --no-cache-dir pytest &&
+          python -m pip check &&
+          python -m compileall -q src data_platform &&
+          python -m pytest -q'
+      - name: Execute container default pipeline
+        run: docker run --rm -e MPLBACKEND=Agg opti-inven-validation
       - uses: actions/upload-artifact@v4
         with:
           name: model-validation
