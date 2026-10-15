@@ -25,7 +25,7 @@ data/demand_weekly.csv
 ## Run
 
 ```bash
-pip install -r requirements-data-platform.txt
+pip install -r Requirements.txt
 python -m data_platform.pipeline
 pytest -q
 ```
