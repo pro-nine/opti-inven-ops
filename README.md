@@ -864,8 +864,8 @@ opti-inven-ops/
 ├── data/
 ├── docs/
 │   ├── VALIDATION.md
-│   └── assets/                  # Documentation assets to publish
-├── outputs/                    # Generated at runtime
+│   └── assets/                  
+├── outputs/                    
 ├── Dockerfile
 ├── docker-compose.yml
 ├── Requirements.txt
