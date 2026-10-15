@@ -166,7 +166,7 @@ def fit_residual_distribution(residuals: np.ndarray) -> dict:
     sw_stat, sw_p = stats.shapiro(r)
     mu, sigma = stats.norm.fit(r)
     # Also keep KS for reference
-    ks_stat, ks_p = stats.kstest(r, "norm", args=(mu, sigma))
+    ks_stat, ks_p = stats.kstest(r, stats.norm(loc=mu, scale=sigma).cdf)
     results["normal"] = {
         "params": {"mu": mu, "sigma": sigma},
         "sw_stat": sw_stat, "sw_p": sw_p,
@@ -180,7 +180,7 @@ def fit_residual_distribution(residuals: np.ndarray) -> dict:
     try:
         a, loc, scale = stats.gamma.fit(r_shifted, floc=0)
         ad_result = stats.anderson(r_shifted, dist="norm")  # AD test
-        ks_g, ks_pg = stats.kstest(r_shifted, "gamma", args=(a, loc, scale))
+        ks_g, ks_pg = stats.kstest(r_shifted, stats.gamma(a, loc=loc, scale=scale).cdf)
         results["gamma"] = {
             "params": {"a": a, "loc": loc + shift, "scale": scale},
             "ks_stat": ks_g, "ks_p": ks_pg,
